@@ -34,7 +34,7 @@ SETTINGS = {
 }
 
 def scheme_generator(prefix = None, settings = SETTINGS):
-	# This function runs BFS (calling itself recursively) to find all possible architectures according to the settings
+	# This function runs BFS (calling itself recursively) to find all possible schemes according to the settings
 	if prefix is None:
 		prefix = []
 	candidates = []
@@ -52,7 +52,7 @@ def scheme_generator(prefix = None, settings = SETTINGS):
 					# Too many layers with s=2, skipping this branch
 					continue
 				for r in block_constraints['residual']:
-					if r and (s != 1 or w != prefix[-1]['width']):
+					if r and (len(prefix) == 0 or s != 1 or w != prefix[-1]['width']):
 						# Cannot apply residual connections when tensors do not agree on shape, skipping this branch
 						continue
 					cand_block = {'kernel_size' : ks, 'width' : w, 'stride' : s, 'residual' : r}
