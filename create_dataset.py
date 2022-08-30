@@ -18,12 +18,13 @@ DEVICE = 'cuda:0'
 MAX_THREADS = 4
 SEED = 20220819
 RECIPE = {
-	'max_epochs' : 30,
+	'max_epochs' : 90,
 	'batch_size' : 256,
 	'physical_batch_size' : 256,
 	'lr' : 0.1,
 	'wd' : 1e-4,
 	'lr_gamma' : 0.1,
+	'lr_gamma_freq' : 1,
 	'restart_rate' : 3,
 	'momentum' : 0.9,
 }
@@ -74,23 +75,36 @@ class Net(nn.Module):
 		
 		return x	
 
-def cifar10_dataset_train():
+def cifar10_dataset(train):
 	transform = transforms.Compose(
 			[transforms.ToTensor(),
 			 transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
-	return torchvision.datasets.CIFAR10(root='./data', train=True,
+	return torchvision.datasets.CIFAR10(root='./data', train=train,
 												download=True, transform=transform)
+
+def set_random_seed(seed):
+	torch.manual_seed(seed)
+	random.seed(seed)
+	np.random.seed(seed)
+	
+def set_lr(optimizer, lr):
+	for g in optimizer.param_groups:
+		g['lr'] = lr
+		
+def get_lr(optimizer):
+	return optimizer.param_groups[0]['lr']
 
 def create_sample(scheme, device, recipe, seed, output_file):		
 	with open(output_file, 'w', buffering = 1) as f:
+		set_random_seed(seed) # For the network random weight initializations
 		net = Net(scheme).to(device)
+		eval_net = Net(scheme).to(device)
+		eval_net.eval()
 		f.write(f'{datetime.now()} Network has been init on device {device}\n')
-		torch.manual_seed(seed)
-		random.seed(seed)
-		np.random.seed(seed)
+		set_random_seed(seed) # For the training set data shuffling
 		# First process should run separately to download the dataset without race condition
-		trainset = cifar10_dataset_train()
+		trainset = cifar10_dataset(train = True)
 		trainloader = torch.utils.data.DataLoader(trainset, batch_size=recipe['batch_size'],
 												  shuffle=True, num_workers=1)
 		f.write(f'{datetime.now()} Training set is ready\n')
@@ -98,15 +112,23 @@ def create_sample(scheme, device, recipe, seed, output_file):
 		optimizer = optim.SGD(net.parameters(), lr = recipe['lr'], momentum = recipe['momentum'], weight_decay = recipe['wd'])
 		physical_batch_size = recipe['physical_batch_size']
 		f.write(f'{datetime.now()} Ready to start training\n')
+		testset = cifar10_dataset(train = False)
+		testloader = torch.utils.data.DataLoader(testset, batch_size=recipe['batch_size'],
+												  shuffle=False, num_workers=1)
 		for epoch in range(recipe['max_epochs']):
-			f.write(f'{datetime.now()} Starting epoch {epoch+1} of {recipe["max_epochs"]}\n')
+			#net.train()
+			if epoch != 0 and epoch % recipe['lr_gamma_freq'] == 0:
+				set_lr(optimizer, get_lr(optimizer) * recipe['lr_gamma'])
+			if recipe['restart_rate'] != 0 and epoch != 0 and epoch % recipe['restart_rate'] == 0:
+				set_lr(optimizer, recipe['lr'])
+			lr_to_print = '{0:g}'.format(get_lr(optimizer))
+			f.write(f'{datetime.now()} Starting epoch {epoch+1} of {recipe["max_epochs"]}. LR: {lr_to_print}\n')
 			batch_losses = []
-			for i, data in enumerate(trainloader, 0):
+			for i, data in enumerate(trainloader):
 				f.write(f'{datetime.now()} Batch {i+1} of {len(trainloader)}\n')
 				inputs, labels = data
 				optimizer.zero_grad()
-				physical_batch_loss = 0.0
-				loss_denominator = 0
+				virtual_batch_loss = 0.0
 				for j in range(0, len(inputs), physical_batch_size):
 					# Allowing big SGD batches and allowing to split them for physical computation, before taking the step
 					from_index = j
@@ -114,15 +136,28 @@ def create_sample(scheme, device, recipe, seed, output_file):
 					inputs_j = inputs[from_index:to_index].to(device)
 					labels_j = labels[from_index:to_index].to(device)
 					outputs = net(inputs_j)
-					loss = criterion(outputs, labels_j)
+					loss = criterion(outputs, labels_j) * len(inputs_j) / float(len(inputs))
 					loss.backward()
-					physical_batch_loss += (to_index - from_index) * loss.item()
-					loss_denominator += to_index - from_index
-				batch_losses.append(physical_batch_loss / loss_denominator)
+					virtual_batch_loss += loss.item()
+				batch_losses.append(virtual_batch_loss)
 				optimizer.step()
-			f.write(f'{datetime.now()} Loss mean, median, min: {np.mean(batch_losses)}, {np.median(batch_losses)}, {np.min(batch_losses)}\n')
-
-
+			f.write(f'{datetime.now()} Loss mean, median: {np.mean(batch_losses)}, {np.median(batch_losses)}\n')		
+			#net.eval()
+			correct = 0
+			total = 0
+			with torch.no_grad():
+				eval_net.load_state_dict(net.state_dict())
+				for data in testloader:
+					inputs, labels = data
+					inputs = inputs.to(device)
+					outputs = eval_net(inputs).cpu().numpy()
+					winners = np.argmax(outputs, axis = 1)
+					correct += len([v for v in winners.astype('int') - labels.cpu().numpy().astype('int') if v == 0])
+					total += len(inputs)
+			accuracy = correct / float(total)
+			f.write(f'{datetime.now()} Test accuracy: {accuracy}\n')
+					
+					
 def add_scheme_to_pool(index, scheme, device, recipe, seed, output_file, executor, futures):
 	if os.path.isfile(output_file):
 		print(f'Warning: Output file already existing for scheme {index+1}: {output_file}. Skipping scheme...')
@@ -140,7 +175,8 @@ def create_dataset(schemes, output_dir, device = DEVICE, recipe = RECIPE, seed =
 		return
 	print(f'{datetime.now()} Making sure that the CIFAR10 dataset is ready')
 	# Pre initializing dataset to ensure that it is ready to use
-	cifar10_dataset_train()
+	cifar10_dataset(train = True)
+	cifar10_dataset(train = False)
 	scheme_to_output_file = lambda index : os.path.join(output_dir, f'scheme_{index+1}.txt')
 	futures = []
 	"""
@@ -172,6 +208,10 @@ def create_dataset(schemes, output_dir, device = DEVICE, recipe = RECIPE, seed =
 			if curr_num_finished == len(futures):
 				break
 			time.sleep(60)
+		for future in futures:
+			exc =  future.exception()
+			if exc:
+				print(exc)
 		
 if __name__ == '__main__':
 	schemes_file = sys.argv[1]
