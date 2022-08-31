@@ -13,6 +13,8 @@ import torchvision
 import torchvision.transforms as transforms
 import numpy as np
 
+from thop import profile
+
 
 DEVICE = 'cuda:0'
 MAX_THREADS = 4
@@ -97,11 +99,17 @@ def get_lr(optimizer):
 
 def create_sample(scheme, device, recipe, seed, output_file):		
 	with open(output_file, 'w', buffering = 1) as f:
+		f.write(f'{datetime.now()} Network scheme: {json.dumps(scheme)}\n')
 		set_random_seed(seed) # For the network random weight initializations
 		net = Net(scheme).to(device)
 		eval_net = Net(scheme).to(device)
 		eval_net.eval()
+		profile_net = Net(scheme)
+		profile_net.eval()
 		f.write(f'{datetime.now()} Network has been init on device {device}\n')
+		dummy_input = torch.zeros(1, 3, 32, 32)
+		macs, params = profile(profile_net, inputs=(dummy_input, ), verbose = False)
+		f.write(f'{datetime.now()} Network #params: {int(params)}, #MACs: {int(macs)}\n')
 		set_random_seed(seed) # For the training set data shuffling
 		# First process should run separately to download the dataset without race condition
 		trainset = cifar10_dataset(train = True)
