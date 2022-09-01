@@ -89,6 +89,8 @@ def set_random_seed(seed):
 	torch.manual_seed(seed)
 	random.seed(seed)
 	np.random.seed(seed)
+	torch.backends.cudnn.deterministic = True
+	torch.backends.cudnn.benchmark = False
 	
 def set_lr(optimizer, lr):
 	for g in optimizer.param_groups:
@@ -97,7 +99,7 @@ def set_lr(optimizer, lr):
 def get_lr(optimizer):
 	return optimizer.param_groups[0]['lr']
 
-def create_sample(scheme, device, recipe, seed, output_file):		
+def create_sample(scheme, device, recipe, seed, output_file):
 	with open(output_file, 'w', buffering = 1) as f:
 		f.write(f'{datetime.now()} Network scheme: {json.dumps(scheme)}\n')
 		set_random_seed(seed) # For the network random weight initializations
@@ -207,15 +209,17 @@ def create_dataset(schemes, output_dir, device = DEVICE, recipe = RECIPE, seed =
 		count_num_finished = lambda : len([1 for future in futures if future.done()])
 		print(f'{datetime.now()} {len(futures)} jobs were added to pool', flush = True)
 		#num_finished = count_num_finished()
+		num_finished = -1
 		while True:
 			# Waiting on all schemes to finish		
 			curr_num_finished = count_num_finished()
-			#if curr_num_finished > num_finished:
-			print(f'{datetime.now()} {curr_num_finished} of {len(futures)} jobs finished', flush = True)
+			if curr_num_finished > num_finished:
+				print(f'{datetime.now()} {curr_num_finished} of {len(futures)} jobs finished', flush = True)
+				num_finished = curr_num_finished
 			#	num_finished = curr_num_finished
-			if curr_num_finished == len(futures):
+			if num_finished == len(futures):
 				break
-			time.sleep(60)
+			time.sleep(3)
 		for future in futures:
 			exc =  future.exception()
 			if exc:
