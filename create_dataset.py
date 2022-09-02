@@ -126,7 +126,6 @@ def create_sample(scheme, device, recipe, seed, output_file):
 		testloader = torch.utils.data.DataLoader(testset, batch_size=recipe['batch_size'],
 												  shuffle=False, num_workers=1)
 		for epoch in range(recipe['max_epochs']):
-			#net.train()
 			if epoch != 0 and epoch % recipe['lr_gamma_freq'] == 0:
 				set_lr(optimizer, get_lr(optimizer) * recipe['lr_gamma'])
 			if recipe['restart_rate'] != 0 and epoch != 0 and epoch % recipe['restart_rate'] == 0:
@@ -152,7 +151,6 @@ def create_sample(scheme, device, recipe, seed, output_file):
 				batch_losses.append(virtual_batch_loss)
 				optimizer.step()
 			f.write(f'{datetime.now()} Loss mean, median: {np.mean(batch_losses)}, {np.median(batch_losses)}\n')		
-			#net.eval()
 			correct = 0
 			total = 0
 			with torch.no_grad():
@@ -189,18 +187,6 @@ def create_dataset(schemes, output_dir, device = DEVICE, recipe = RECIPE, seed =
 	cifar10_dataset(train = False)
 	scheme_to_output_file = lambda index : os.path.join(output_dir, f'scheme_{index+1}.txt')
 	futures = []
-	"""
-	print(f'{datetime.now()} Starting execution of first scheme')
-	with ProcessPoolExecutor(max_workers = 1) as executor:
-		output_file = scheme_to_output_file(0)
-		run_scheme_on_pool(0, schemes[0], device, recipe, seed, output_file, executor, futures)
-	while len(futures) > 0 and (not futures[0].done()):
-		# Waiting on first scheme to finish (it should take care of downloading the dataset)
-		time.sleep(1)
-	print(f'{datetime.now()} Finished execution of scheme 1')
-	if futures[0].exception is not None:
-		raise futures[0].exception()
-	"""
 	print(f'{datetime.now()} Starting pool execution of all schemes')
 	with ProcessPoolExecutor(max_workers = max_threads) as executor:
 		for i, scheme in enumerate(schemes):
@@ -208,7 +194,6 @@ def create_dataset(schemes, output_dir, device = DEVICE, recipe = RECIPE, seed =
 			add_scheme_to_pool(i, scheme, device, recipe, seed, output_file, executor, futures)
 		count_num_finished = lambda : len([1 for future in futures if future.done()])
 		print(f'{datetime.now()} {len(futures)} jobs were added to pool', flush = True)
-		#num_finished = count_num_finished()
 		num_finished = -1
 		while True:
 			# Waiting on all schemes to finish		
@@ -216,10 +201,9 @@ def create_dataset(schemes, output_dir, device = DEVICE, recipe = RECIPE, seed =
 			if curr_num_finished > num_finished:
 				print(f'{datetime.now()} {curr_num_finished} of {len(futures)} jobs finished', flush = True)
 				num_finished = curr_num_finished
-			#	num_finished = curr_num_finished
 			if num_finished == len(futures):
 				break
-			time.sleep(3)
+			time.sleep(10)
 		for future in futures:
 			exc =  future.exception()
 			if exc:
