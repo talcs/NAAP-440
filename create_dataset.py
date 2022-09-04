@@ -98,30 +98,35 @@ def set_lr(optimizer, lr):
 		
 def get_lr(optimizer):
 	return optimizer.param_groups[0]['lr']
+	
+def thin_datetime():
+	s = str(datetime.now())
+	
+	return s[:-7].replace(':','').replace('-','').replace(' ', '')
 
 def create_sample(scheme, device, recipe, seed, output_file):
 	with open(output_file, 'w', buffering = 1) as f:
-		f.write(f'{datetime.now()} Network scheme: {json.dumps(scheme)}\n')
+		f.write(f'{thin_datetime()} Network scheme: {json.dumps(scheme)}\n')
 		set_random_seed(seed) # For the network random weight initializations
 		net = Net(scheme).to(device)
 		eval_net = Net(scheme).to(device)
 		eval_net.eval()
 		profile_net = Net(scheme)
 		profile_net.eval()
-		f.write(f'{datetime.now()} Network has been init on device {device}\n')
+		f.write(f'{thin_datetime()} Network has been init on device {device}\n')
 		dummy_input = torch.zeros(1, 3, 32, 32)
 		macs, params = profile(profile_net, inputs=(dummy_input, ), verbose = False)
-		f.write(f'{datetime.now()} Network #params: {int(params)}, #MACs: {int(macs)}\n')
+		f.write(f'{thin_datetime()} Network #params: {int(params)}, #MACs: {int(macs)}\n')
 		set_random_seed(seed) # For the training set data shuffling
 		# First process should run separately to download the dataset without race condition
 		trainset = cifar10_dataset(train = True)
 		trainloader = torch.utils.data.DataLoader(trainset, batch_size=recipe['batch_size'],
 												  shuffle=True, num_workers=1)
-		f.write(f'{datetime.now()} Training set is ready\n')
+		f.write(f'{thin_datetime()} Training set is ready\n')
 		criterion = nn.CrossEntropyLoss()
 		optimizer = optim.SGD(net.parameters(), lr = recipe['lr'], momentum = recipe['momentum'], weight_decay = recipe['wd'])
 		physical_batch_size = recipe['physical_batch_size']
-		f.write(f'{datetime.now()} Ready to start training\n')
+		f.write(f'{thin_datetime()} Ready to start training\n')
 		testset = cifar10_dataset(train = False)
 		testloader = torch.utils.data.DataLoader(testset, batch_size=recipe['batch_size'],
 												  shuffle=False, num_workers=1)
@@ -131,10 +136,9 @@ def create_sample(scheme, device, recipe, seed, output_file):
 			if recipe['restart_rate'] != 0 and epoch != 0 and epoch % recipe['restart_rate'] == 0:
 				set_lr(optimizer, recipe['lr'])
 			lr_to_print = '{0:g}'.format(get_lr(optimizer))
-			f.write(f'{datetime.now()} Starting epoch {epoch+1} of {recipe["max_epochs"]}. LR: {lr_to_print}\n')
+			f.write(f'{thin_datetime()} Epoch {epoch+1}, LR: {lr_to_print}\n')
 			batch_losses = []
 			for i, data in enumerate(trainloader):
-				f.write(f'{datetime.now()} Batch {i+1} of {len(trainloader)}\n')
 				inputs, labels = data
 				optimizer.zero_grad()
 				virtual_batch_loss = 0.0
@@ -150,7 +154,7 @@ def create_sample(scheme, device, recipe, seed, output_file):
 					virtual_batch_loss += loss.item()
 				batch_losses.append(virtual_batch_loss)
 				optimizer.step()
-			f.write(f'{datetime.now()} Loss mean, median: {np.mean(batch_losses)}, {np.median(batch_losses)}\n')		
+			f.write(f'{thin_datetime()} Loss mean, median: {round(np.mean(batch_losses), 5)}, {round(np.median(batch_losses), 5)}\n')		
 			correct = 0
 			total = 0
 			with torch.no_grad():
@@ -163,7 +167,7 @@ def create_sample(scheme, device, recipe, seed, output_file):
 					correct += len([v for v in winners.astype('int') - labels.cpu().numpy().astype('int') if v == 0])
 					total += len(inputs)
 			accuracy = correct / float(total)
-			f.write(f'{datetime.now()} Test accuracy: {accuracy}\n')
+			f.write(f'{thin_datetime()} Test accuracy: {accuracy}\n')
 					
 					
 def add_scheme_to_pool(index, scheme, device, recipe, seed, output_file, executor, futures):
