@@ -52,7 +52,7 @@ def extract_data_from_file(path):
 	return record
 
 def get_csv_header():
-	header = 'ModelId,IsTest,NumParams,NumMacs,NumLayers,NumStages,FirstLayerWidth,LastLayerWidth,MaxAccuracy'
+	header = 'ModelId,IsTest,NumParams,NumMACs,NumLayers,NumStages,FirstLayerWidth,LastLayerWidth,MaxAccuracy'
 	for epoch in range(1, MAX_EPOCH + 1):
 		header += ','
 		header += ','.join(f'e{epoch}{metric}' for metric in ('LossMean','LossMedian','Accuracy'))
