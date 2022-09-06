@@ -10,7 +10,6 @@ from sklearn import tree
 from sklearn import ensemble
 from sklearn import ensemble
 from sklearn import svm
-from sklearn import kernel_ridge
 from sklearn import preprocessing
 
 
@@ -101,19 +100,18 @@ def run_experiments(dataset, output_dir):
 		('9-NN', lambda : KNeighborsRegressor(n_neighbors = 9, algorithm = 'brute')),
 		('Linear Regression', lambda : linear_model.LinearRegression()),
 		('Decision Treee', lambda : tree.DecisionTreeRegressor()),
-		('Gradient Boosting,N=50', lambda : ensemble.GradientBoostingRegressor(n_estimators = 50)),
-		('Gradient Boosting,N=100', lambda : ensemble.GradientBoostingRegressor(n_estimators = 100)),
-		('Gradient Boosting,N=200', lambda : ensemble.GradientBoostingRegressor(n_estimators = 200)),
-		('AdaBoost,N=50', lambda : ensemble.AdaBoostRegressor(n_estimators = 50)),
-		('AdaBoost,N=100', lambda : ensemble.AdaBoostRegressor(n_estimators = 100)),
-		('AdaBoost,N=200', lambda : ensemble.AdaBoostRegressor(n_estimators = 200)),
+		('Gradient Boosting (N=50)', lambda : ensemble.GradientBoostingRegressor(n_estimators = 50)),
+		('Gradient Boosting (N=100)', lambda : ensemble.GradientBoostingRegressor(n_estimators = 100)),
+		('Gradient Boosting (N=200)', lambda : ensemble.GradientBoostingRegressor(n_estimators = 200)),
+		('AdaBoost (N=50)', lambda : ensemble.AdaBoostRegressor(n_estimators = 50)),
+		('AdaBoost (N=100)', lambda : ensemble.AdaBoostRegressor(n_estimators = 100)),
+		('AdaBoost (N=200)', lambda : ensemble.AdaBoostRegressor(n_estimators = 200)),
 		('SVR (RBF kernel)', lambda : svm.SVR(kernel = 'rbf')),
 		('SVR (Polynimial kernel)', lambda : svm.SVR(kernel = 'poly')),
 		('SVR (Linear kernel)', lambda : svm.SVR(kernel = 'linear')),
-		('Kernel Ridge', lambda : kernel_ridge.KernelRidge()),
-		('Random Forest,N=50', lambda : ensemble.RandomForestRegressor(n_estimators=50)),
-		('Random Forest,N=100', lambda : ensemble.RandomForestRegressor(n_estimators=100)),
-		('Random Forest,N=200', lambda : ensemble.RandomForestRegressor(n_estimators=200)),
+		('Random Forest (N=50)', lambda : ensemble.RandomForestRegressor(n_estimators=50)),
+		('Random Forest (N=100)', lambda : ensemble.RandomForestRegressor(n_estimators=100)),
+		('Random Forest (N=200)', lambda : ensemble.RandomForestRegressor(n_estimators=200)),
 	]
 	if DEBUG:
 		feature_sets = feature_sets[:1]
