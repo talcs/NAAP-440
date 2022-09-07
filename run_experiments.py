@@ -14,14 +14,17 @@ from sklearn import preprocessing
 
 
 SEED = 20220905
-random.seed(SEED)
-np.random.seed(SEED)
 
 DEBUG = False
+PRODUCE_FIGURES = True
 
 LOG_PARAMS_AND_MACS = True
 
 compute_mae = lambda predictions, ground_truth : np.mean(np.abs(predictions - ground_truth))
+
+def set_random_seed(seed = SEED):
+	random.seed(seed)
+	np.random.seed(seed)
 
 def compute_monotonicity_score(predictions):
 	# The dataset is already sorted by MaxAccuracy
@@ -41,6 +44,7 @@ def run_experiment(trainset, testset, model_ctor, features):
 	Y_train = trainset.MaxAccuracy
 	X_test = testset[features].astype('float64')
 	
+	set_random_seed(SEED)
 	scaler = preprocessing.StandardScaler().fit(X_train)
 	model.fit(scaler.transform(X_train), Y_train)
 	Y_test = model.predict(scaler.transform(X_test))
@@ -59,8 +63,9 @@ def run_experiments(dataset, output_dir):
 	if output_dir is not None:
 		os.mkdir(output_dir)
 		output_csv = os.path.join(output_dir, 'results.csv')
-		figures_dir = os.path.join(output_dir, 'figures')
-		os.mkdir(figures_dir)
+		if PRODUCE_FIGURES:
+			figures_dir = os.path.join(output_dir, 'figures')
+			os.mkdir(figures_dir)
 	if LOG_PARAMS_AND_MACS:
 		dataset['NumParams'] = np.log(dataset['NumParams'])
 		dataset['NumMACs'] = np.log(dataset['NumMACs'])
@@ -68,6 +73,7 @@ def run_experiments(dataset, output_dir):
 	testset = dataset[dataset.IsTest == 1]
 	
 	scheme_features = ['NumParams', 'NumMACs', 'NumLayers', 'NumStages', 'FirstLayerWidth', 'LastLayerWidth']
+	scheme_limited_features = ['NumParams', 'NumStages']
 	quantitative_features = []
 	for epoch in range(1,18+1):
 		quantitative_features += [f'e{epoch}{metric}' for metric in ('LossMean','LossMedian','Accuracy')]
@@ -77,20 +83,46 @@ def run_experiments(dataset, output_dir):
 	qfeatures_12 = quantitative_features[:12*3]
 	qfeatures_15 = quantitative_features[:15*3]
 	qfeatures_18 = quantitative_features[:18*3]
+	
+	# Notes:
+	# As described in the paper, the ablation studies showed that:
+	#  1. When only using scheme features (no features from epochs), the limited set of features (NumParams + NumStages) works best
+	#  2. When combining the scheme features with features from the epochs, using the full set of scheme features usually works best
 	feature_sets = [
-		('Scheme', scheme_features),
-		('Quantitative 3 epochs', qfeatures_3),
-		('Quantitative 6 epochs', qfeatures_6),
-		('Quantitative 9 epochs', qfeatures_9),
-		('Quantitative 12 epochs', qfeatures_12),
-		('Quantitative 15 epochs', qfeatures_15),
-		('Quantitative 18 epochs', qfeatures_18),
+		# Ablation study...
+		#('SchemeFull', scheme_features),
+		#('SchemeFull\\NumParams', scheme_features[1:]),
+		#('SchemeFull\\NumMACs', scheme_features[:1] + scheme_features[2:]),
+		#('SchemeFull\\NumLayers', scheme_features[:2] + scheme_features[3:]),
+		#('SchemeFull\\NumStages', scheme_features[:3] + scheme_features[4:]),
+		#('SchemeFull\\FirstLayerWidth', scheme_features[:4] + scheme_features[5:]),
+		#('SchemeFull\\LastLayerWidth', scheme_features[:5]),
+		('Scheme' , scheme_limited_features),		
 		('Scheme + Quantitative 3 epochs', scheme_features + qfeatures_3),
 		('Scheme + Quantitative 6 epochs', scheme_features + qfeatures_6),
 		('Scheme + Quantitative 9 epochs', scheme_features + qfeatures_9),
-		('Scheme + Quantitative 12 epochs', scheme_features + qfeatures_12),
-		('Scheme + Quantitative 15 epochs', scheme_features + qfeatures_15),
-		('Scheme + Quantitative 18 epochs', scheme_features + qfeatures_18),
+		#('Scheme + Quantitative 12 epochs', scheme_features + qfeatures_12),
+		#('Scheme + Quantitative 15 epochs', scheme_features + qfeatures_15),
+		#('Scheme + Quantitative 18 epochs', scheme_features + qfeatures_18),
+		# Ablation study 2...
+		#('SchemeFull\\NumParams + quan9', scheme_features[1:] + qfeatures_9),
+		#('SchemeFull\\NumMACs + quan9', scheme_features[:1] + scheme_features[2:] + qfeatures_9),
+		#('SchemeFull\\NumLayers + quan9', scheme_features[:2] + scheme_features[3:] + qfeatures_9),
+		#('SchemeFull\\NumStages + quan9', scheme_features[:3] + scheme_features[4:] + qfeatures_9),
+		#('SchemeFull\\FirstLayerWidth + quan9', scheme_features[:4] + scheme_features[5:] + qfeatures_9),
+		#('SchemeFull\\LastLayerWidth + quan9', scheme_features[:5] + qfeatures_9),
+		#('SchemeLimited + Quantitative 3 epochs', scheme_limited_features + qfeatures_3),
+		#('SchemeLimited + Quantitative 6 epochs', scheme_limited_features + qfeatures_6),
+		#('SchemeLimited + Quantitative 9 epochs', scheme_limited_features + qfeatures_9),
+		#('SchemeLimited + Quantitative 12 epochs', scheme_limited_features + qfeatures_12),
+		#('SchemeLimited + Quantitative 15 epochs', scheme_limited_features + qfeatures_15),
+		#('SchemeLimited + Quantitative 18 epochs', scheme_limited_features + qfeatures_18),
+		#('Quantitative 3 epochs', qfeatures_3),
+		#('Quantitative 6 epochs', qfeatures_6),
+		#('Quantitative 9 epochs', qfeatures_9),
+		#('Quantitative 12 epochs', qfeatures_12),
+		#('Quantitative 15 epochs', qfeatures_15),
+		#('Quantitative 18 epochs', qfeatures_18),
 	]
 	models = [
 		('1-NN', lambda : KNeighborsRegressor(n_neighbors = 1, algorithm = 'brute')),
@@ -99,16 +131,19 @@ def run_experiments(dataset, output_dir):
 		('7-NN', lambda : KNeighborsRegressor(n_neighbors = 7, algorithm = 'brute')),
 		('9-NN', lambda : KNeighborsRegressor(n_neighbors = 9, algorithm = 'brute')),
 		('Linear Regression', lambda : linear_model.LinearRegression()),
-		('Decision Treee', lambda : tree.DecisionTreeRegressor()),
+		('Decision Tree', lambda : tree.DecisionTreeRegressor()),
+		('Gradient Boosting (N=25)', lambda : ensemble.GradientBoostingRegressor(n_estimators = 25)),
 		('Gradient Boosting (N=50)', lambda : ensemble.GradientBoostingRegressor(n_estimators = 50)),
 		('Gradient Boosting (N=100)', lambda : ensemble.GradientBoostingRegressor(n_estimators = 100)),
 		('Gradient Boosting (N=200)', lambda : ensemble.GradientBoostingRegressor(n_estimators = 200)),
+		('AdaBoost (N=25)', lambda : ensemble.AdaBoostRegressor(n_estimators = 25)),
 		('AdaBoost (N=50)', lambda : ensemble.AdaBoostRegressor(n_estimators = 50)),
 		('AdaBoost (N=100)', lambda : ensemble.AdaBoostRegressor(n_estimators = 100)),
 		('AdaBoost (N=200)', lambda : ensemble.AdaBoostRegressor(n_estimators = 200)),
 		('SVR (RBF kernel)', lambda : svm.SVR(kernel = 'rbf')),
 		('SVR (Polynimial kernel)', lambda : svm.SVR(kernel = 'poly')),
 		('SVR (Linear kernel)', lambda : svm.SVR(kernel = 'linear')),
+		('Random Forest (N=25)', lambda : ensemble.RandomForestRegressor(n_estimators=25)),
 		('Random Forest (N=50)', lambda : ensemble.RandomForestRegressor(n_estimators=50)),
 		('Random Forest (N=100)', lambda : ensemble.RandomForestRegressor(n_estimators=100)),
 		('Random Forest (N=200)', lambda : ensemble.RandomForestRegressor(n_estimators=200)),

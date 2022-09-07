@@ -41,7 +41,7 @@ def exp_results_to_latex_table(exp_results, output_tex):
 	acceleration_categories = [1]
 	num_epoch_categories = [0]
 	for feature_set_name in exp_results.Features.unique():
-		if 'Scheme' in feature_set_name:
+		if 'Scheme' == feature_set_name:
 			continue
 		num_epochs = int(re.search(r'(\d+)', feature_set_name).group(1))
 		if num_epochs > 9:
@@ -56,14 +56,14 @@ def exp_results_to_latex_table(exp_results, output_tex):
 \\begin{{table*}}[]
 \\centering
 \\resizebox{{\\linewidth}}{{!}}{{%
-\\begin{{tabular}}{{lc||{0}}}
+\\begin{{tabular}}{{l||{0}}}
 \\hline
 \\hline
- &  & \\multicolumn{{{1:d}}}{{|c|}}{{\\textbf{{MAE / Monotonicity Score / \\#Monotonicity Violations}}}} \\\\
+ &  \\multicolumn{{{1:d}}}{{|c|}}{{\\textbf{{MAE / Monotonicity Score / \\#Monotonicity Violations}}}} \\\\
  \\hline
 """.format('c|' * len(acceleration_categories), len(acceleration_categories))
-	text += ' & \\textbf{Scheme}& ' + ' & '.join(['{0:.1f}\% acceleration'.format(100 * v) for v in acceleration_categories]) + '\\\\ \n'
-	text += '\\textbf{Algorithm} &  \\textbf{Features?} & ' + ' & '.join(['({0:d} epochs)'.format(v) for v in num_epoch_categories]) + '\\\\ \n'
+	text += ' & ' + ' & '.join(['{0:.1f}\% acceleration'.format(100 * v) for v in acceleration_categories]) + '\\\\ \n'
+	text += '\\textbf{Algorithm} & ' + ' & '.join(['({0:d} epochs)'.format(v) for v in num_epoch_categories]) + '\\\\ \n'
 	text += '\\hline\n'
 	for alg in algorithms:
 		model_data = exp_results[exp_results.Model == alg]
@@ -72,13 +72,15 @@ def exp_results_to_latex_table(exp_results, output_tex):
 				scheme_data = model_data[model_data.Features.str.contains('Scheme')]
 			else:
 				scheme_data = model_data[~model_data.Features.str.contains('Scheme')]
-			text += alg + ' & ' + ('Yes' if scheme else 'No')
+				continue # Scheme essence has already been covered in an ablation study table
+			# Scheme is always included now
+			text += alg # + ' & ' + ('Yes' if scheme else 'No') 
 			for acceleration, cat_name in zip(acceleration_categories, acceleration_catgory_names):
 				text += ' & '
 				if ' 0 epochs' in cat_name:
 					acc_data = scheme_data[scheme_data.Features == 'Scheme']
 				else:
-					acc_data = scheme_data[scheme_data.Features.str.contains(cat_name)]
+					acc_data = scheme_data[scheme_data.Features == cat_name]
 				if len(acc_data) == 0:
 					text += '-'
 				else:
@@ -89,8 +91,8 @@ def exp_results_to_latex_table(exp_results, output_tex):
 \\hline
 \\end{tabular}
 }
-\\caption[]{CLS-LOC Top-1 leave-one-out regression errors, using model count of parameters as the only feature.}
-\\label{tbl:regressionFromNumParamsTop1}
+\\caption[]{bla.}
+\\label{tbl:bla}
 \\end{table*}
 """
 
