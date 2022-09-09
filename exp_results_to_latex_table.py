@@ -56,12 +56,12 @@ def exp_results_to_latex_table(exp_results, output_tex):
 \\begin{{table*}}[]
 \\centering
 \\resizebox{{\\linewidth}}{{!}}{{%
-\\begin{{tabular}}{{l||{0}}}
+\\begin{{tabular}}{{l|{0}}}
 \\hline
 \\hline
- &  \\multicolumn{{{1:d}}}{{|c|}}{{\\textbf{{MAE / Monotonicity Score / \\#Monotonicity Violations}}}} \\\\
+ &  \\multicolumn{{{1:d}}}{{c}}{{\\textbf{{MAE / Monotonicity Score / \\#Monotonicity Violations}}}} \\\\
  \\hline
-""".format('c|' * len(acceleration_categories), len(acceleration_categories))
+""".format('|c' * len(acceleration_categories), len(acceleration_categories))
 	text += ' & ' + ' & '.join(['{0:.1f}\% acceleration'.format(100 * v) for v in acceleration_categories]) + '\\\\ \n'
 	text += '\\textbf{Algorithm} & ' + ' & '.join(['({0:d} epochs)'.format(v) for v in num_epoch_categories]) + '\\\\ \n'
 	text += '\\hline\n'

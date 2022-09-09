@@ -13,7 +13,7 @@ from sklearn import svm
 from sklearn import preprocessing
 
 
-SEED = 20220905
+SEEDS = [20220905 + i for i in range(5)]
 
 DEBUG = False
 PRODUCE_FIGURES = True
@@ -22,9 +22,25 @@ LOG_PARAMS_AND_MACS = True
 
 compute_mae = lambda predictions, ground_truth : np.mean(np.abs(predictions - ground_truth))
 
-def set_random_seed(seed = SEED):
+
+class LinearRegressionWithPolynomialActivation:
+	def __init__(self, polynomial_degree):
+		self.polynomial_degree = polynomial_degree
+		self.linear_regression = linear_model.LinearRegression()
+		
+	def fit(self, X, y):
+		# Polynomial activation = (InnerProduct + 1)^dgree
+		pol_y = y ** (1 / float(self.polynomial_degree)) - 1
+		self.linear_regression.fit(X, pol_y)
+		
+	def predict(self, X):
+		return (self.linear_regression.predict(X) + 1) ** self.polynomial_degree
+
+
+def set_random_seed(seed):
 	random.seed(seed)
 	np.random.seed(seed)
+	
 
 def compute_monotonicity_score(predictions):
 	# The dataset is already sorted by MaxAccuracy
@@ -38,23 +54,35 @@ def compute_monotonicity_score(predictions):
 	
 	return num_violations, max_violations, 1 - num_violations / float(max_violations), sorting
 
-def run_experiment(trainset, testset, model_ctor, features):
+def find_median_index(entries, keyfield):
+	indices = list(range(len(entries)))
+	indices.sort(key = lambda x : entries[x][keyfield])
+	
+	return indices[len(indices) // 2]
+	
+
+def run_experiment(trainset, testset, model_ctor, features, seeds = SEEDS):
 	model = model_ctor()
 	X_train = trainset[features].astype('float64')
 	Y_train = trainset.MaxAccuracy
 	X_test = testset[features].astype('float64')
 	
-	set_random_seed(SEED)
-	scaler = preprocessing.StandardScaler().fit(X_train)
-	model.fit(scaler.transform(X_train), Y_train)
-	Y_test = model.predict(scaler.transform(X_test))
-	
 	GT_test = testset.MaxAccuracy
 	
-	mae = compute_mae(Y_test, GT_test)
-	num_violations, max_violations, ms, sorting = compute_monotonicity_score(Y_test)
+	seed_results = []	
+	for seed in seeds:
+		set_random_seed(seed)
+		scaler = preprocessing.StandardScaler().fit(X_train)
+		model.fit(scaler.transform(X_train), Y_train)
+		Y_test = model.predict(scaler.transform(X_test))	
 	
-	return mae, num_violations, max_violations, ms, sorting
+		mae = compute_mae(Y_test, GT_test)
+		num_violations, max_violations, ms, sorting = compute_monotonicity_score(Y_test)
+		seed_results.append({'mae' : mae, 'num_violations' : num_violations, 'max_violations' : max_violations, 'ms' : ms, 'sorting' : sorting})
+	
+	median_index = find_median_index(seed_results, 'num_violations')
+		
+	return seed_results[median_index]
 	
 
 def run_experiments(dataset, output_dir):
@@ -66,6 +94,7 @@ def run_experiments(dataset, output_dir):
 		if PRODUCE_FIGURES:
 			figures_dir = os.path.join(output_dir, 'figures')
 			os.mkdir(figures_dir)
+	dataset = dataset.sort_values('MaxAccuracy')
 	if LOG_PARAMS_AND_MACS:
 		dataset['NumParams'] = np.log(dataset['NumParams'])
 		dataset['NumMACs'] = np.log(dataset['NumMACs'])
@@ -131,6 +160,8 @@ def run_experiments(dataset, output_dir):
 		('7-NN', lambda : KNeighborsRegressor(n_neighbors = 7, algorithm = 'brute')),
 		('9-NN', lambda : KNeighborsRegressor(n_neighbors = 9, algorithm = 'brute')),
 		('Linear Regression', lambda : linear_model.LinearRegression()),
+		('Linear Regression D=0.5', lambda : LinearRegressionWithPolynomialActivation(0.5)),
+		('Linear Regression D=0.25', lambda : LinearRegressionWithPolynomialActivation(0.25)),
 		('Decision Tree', lambda : tree.DecisionTreeRegressor()),
 		('Gradient Boosting (N=25)', lambda : ensemble.GradientBoostingRegressor(n_estimators = 25)),
 		('Gradient Boosting (N=50)', lambda : ensemble.GradientBoostingRegressor(n_estimators = 50)),
@@ -141,7 +172,7 @@ def run_experiments(dataset, output_dir):
 		('AdaBoost (N=100)', lambda : ensemble.AdaBoostRegressor(n_estimators = 100)),
 		('AdaBoost (N=200)', lambda : ensemble.AdaBoostRegressor(n_estimators = 200)),
 		('SVR (RBF kernel)', lambda : svm.SVR(kernel = 'rbf')),
-		('SVR (Polynimial kernel)', lambda : svm.SVR(kernel = 'poly')),
+		('SVR (Polynomial kernel)', lambda : svm.SVR(kernel = 'poly')),
 		('SVR (Linear kernel)', lambda : svm.SVR(kernel = 'linear')),
 		('Random Forest (N=25)', lambda : ensemble.RandomForestRegressor(n_estimators=25)),
 		('Random Forest (N=50)', lambda : ensemble.RandomForestRegressor(n_estimators=50)),
@@ -159,19 +190,19 @@ def run_experiments(dataset, output_dir):
 			print(f'Model: {model_name}:')
 			print(f'---------------')
 		for feature_set_name, feature_set in feature_sets:
-			mae, num_violations, max_violations, ms, sorting = run_experiment(trainset, testset, model_ctor, feature_set)
-			mae = round(mae, 4)
-			ms = round(ms, 4)
+			result = run_experiment(trainset, testset, model_ctor, feature_set, SEEDS)
+			result['mae'] = round(result['mae'], 4)
+			result['ms'] = round(result['ms'], 4)
 			if not output_csv:
-				print(f'{feature_set_name}: MAE: {mae}, Monotonicity Score: {ms}, {num_violations} of {max_violations} violations')
+				print(f'{feature_set_name}: MAE: {result["mae"]}, Monotonicity Score: {result["ms"]}, {result["num_violations"]} of {result["max_violations"]} violations')
 			if output_csv:
 				with open(output_csv, 'a') as f:
-					f.write(f'{model_name},{feature_set_name},{mae},{num_violations},{max_violations},{ms}\n')
+					f.write(f'{model_name},{feature_set_name},{result["mae"]},{result["num_violations"]},{result["max_violations"]},{result["ms"]}\n')
 			if figures_dir:
 				import matplotlib.pyplot as plt
 				conf_matrix = np.zeros((len(testset), len(testset)))
-				for i, sorted_index in enumerate(sorting):
-					conf_matrix[sorted_index,i] = (1 - abs(sorted_index - i) / float(len(sorting)))**2
+				for i, sorted_index in enumerate(result["sorting"]):
+					conf_matrix[sorted_index,i] = (1 - abs(sorted_index - i) / float(len(result["sorting"])))**2
 				plt.imshow(conf_matrix, cmap = 'plasma', origin = 'lower')
 				plt.xlabel('Model Index')
 				plt.ylabel('Predicted Model Index')

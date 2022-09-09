@@ -15,6 +15,7 @@ PROFILE_XTOR = re.compile(r'Network #params: (\d+), #MACs: (\d+)')
 
 def extract_data_from_file(path):
 	record = {}
+	record['model_id'] = int(TRAIN_FILENAME_XTOR.search(os.path.basename(path)).group(1))
 	with open(path, 'r') as f:
 		epoch = 0
 		max_accuracy = 0
@@ -74,12 +75,11 @@ def data_dir_to_csv(input_dir, output_file):
 	bin_size = int(round(len(data) / TEST_SET_SIZE))
 	bin_middle_index = bin_size // 2
 	for i, record in enumerate(data):
-		record['model_id'] = i+1
 		# The central record of each bin is allocated for the test set.
 		record['is_test'] = int(i - bin_middle_index >= 0 and (i - bin_middle_index) % bin_size == 0)
 	with open(output_file, 'w') as f:
 		f.write(get_csv_header() + '\n')
-		for record in data:
+		for record in sorted(data, key = lambda x : x['model_id']):
 			f.write(file_data_to_csv_line(record) + '\n')
 
 if __name__ == '__main__':
