@@ -78,12 +78,37 @@ def run_experiment(trainset, testset, model_ctor, features, seeds = SEEDS):
 	
 		mae = compute_mae(Y_test, GT_test)
 		num_violations, max_violations, ms, sorting = compute_monotonicity_score(Y_test)
-		seed_results.append({'mae' : mae, 'num_violations' : num_violations, 'max_violations' : max_violations, 'ms' : ms, 'sorting' : sorting})
+		seed_results.append({'mae' : mae, 'num_violations' : num_violations, 'max_violations' : max_violations, 'ms' : ms, 'sorting' : sorting, 'pred' : Y_test})
 	
 	median_index = find_median_index(seed_results, 'num_violations')
 		
 	return seed_results[median_index]
+
+
+def create_confusion_matrix(sorting, save_path):
+	import matplotlib.pyplot as plt
+	plt.clf()
+	conf_matrix = np.zeros((len(sorting), len(sorting)))
+	for i, sorted_index in enumerate(sorting):
+		conf_matrix[sorted_index,i] = (1 - abs(sorted_index - i) / float(len(sorting)))**2
+	plt.imshow(conf_matrix, cmap = 'plasma', origin = 'lower')
+	plt.xlabel('Model Index')
+	plt.ylabel('Predicted Model Index')
+	plt.savefig(save_path, bbox_inches = 'tight')
 	
+def create_scatter_plot(gt_series, pred_series, save_path):
+	import matplotlib.pyplot as plt
+	plt.clf()
+	plt.scatter(range(1, len(gt_series) + 1), gt_series, label = 'GT accuracy')
+	plt.scatter(range(1, len(pred_series) + 1), pred_series, label = 'Predicted accuracy')
+	plt.xlabel('Model Index')
+	plt.ylabel('Accuracy on CIFAR10 test set')
+	rmin_y_value = round(min(min(gt_series), min(pred_series)), 2)
+	rmax_y_value = round(max(max(gt_series), max(pred_series)), 2)
+	plt.yticks(np.arange(rmin_y_value, rmax_y_value+0.02, 0.03))
+	plt.grid()
+	plt.legend()
+	plt.savefig(save_path, bbox_inches = 'tight')
 
 def run_experiments(dataset, output_dir):
 	output_csv = None
@@ -198,14 +223,10 @@ def run_experiments(dataset, output_dir):
 				with open(output_csv, 'a') as f:
 					f.write(f'{model_name},{feature_set_name},{result["mae"]},{result["num_violations"]},{result["max_violations"]},{result["ms"]}\n')
 			if figures_dir:
-				import matplotlib.pyplot as plt
-				conf_matrix = np.zeros((len(testset), len(testset)))
-				for i, sorted_index in enumerate(result["sorting"]):
-					conf_matrix[sorted_index,i] = (1 - abs(sorted_index - i) / float(len(result["sorting"])))**2
-				plt.imshow(conf_matrix, cmap = 'plasma', origin = 'lower')
-				plt.xlabel('Model Index')
-				plt.ylabel('Predicted Model Index')
-				plt.savefig(os.path.join(figures_dir, f'{model_name}_{feature_set_name}.jpg'), bbox_inches = 'tight')
+				conf_matrix_path = os.path.join(figures_dir, f'{model_name}_{feature_set_name}_matrix.jpg')
+				scatter_path = os.path.join(figures_dir, f'{model_name}_{feature_set_name}_scatter.jpg')
+				create_confusion_matrix(result['sorting'], conf_matrix_path)
+				create_scatter_plot(testset.MaxAccuracy, result['pred'], scatter_path)
 				
 if __name__ == '__main__':
 	dataset_path = sys.argv[1]
