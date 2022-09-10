@@ -15,8 +15,8 @@ from sklearn import preprocessing
 
 SEEDS = [20220905 + i for i in range(5)]
 
-DEBUG = False
 PRODUCE_FIGURES = True
+ABLATION_STUDY = False
 
 LOG_PARAMS_AND_MACS = True
 
@@ -117,42 +117,44 @@ def run_experiments(dataset, output_dir):
 	# As described in the paper, the ablation studies showed that:
 	#  1. When only using scheme features (no features from epochs), the limited set of features (NumParams + NumStages) works best
 	#  2. When combining the scheme features with features from the epochs, using the full set of scheme features usually works best
-	feature_sets = [
-		# Ablation study...
-		#('SchemeFull', scheme_features),
-		#('SchemeFull\\NumParams', scheme_features[1:]),
-		#('SchemeFull\\NumMACs', scheme_features[:1] + scheme_features[2:]),
-		#('SchemeFull\\NumLayers', scheme_features[:2] + scheme_features[3:]),
-		#('SchemeFull\\NumStages', scheme_features[:3] + scheme_features[4:]),
-		#('SchemeFull\\FirstLayerWidth', scheme_features[:4] + scheme_features[5:]),
-		#('SchemeFull\\LastLayerWidth', scheme_features[:5]),
+	feature_sets = []
+	if ABLATION_STUDY:
+		# Ablation study on scheme features...
+		feature_sets.extend([
+			('SchemeFull', scheme_features),
+			('SchemeFull\\NumParams', scheme_features[1:]),
+			('SchemeFull\\NumMACs', scheme_features[:1] + scheme_features[2:]),
+			('SchemeFull\\NumLayers', scheme_features[:2] + scheme_features[3:]),
+			('SchemeFull\\NumStages', scheme_features[:3] + scheme_features[4:]),
+			('SchemeFull\\FirstLayerWidth', scheme_features[:4] + scheme_features[5:]),
+			('SchemeFull\\LastLayerWidth', scheme_features[:5]),
+		])
+	# Only feature sets for the baseline report
+	feature_sets.extend([
 		('Scheme' , scheme_limited_features),		
 		('Scheme + Quantitative 3 epochs', scheme_features + qfeatures_3),
 		('Scheme + Quantitative 6 epochs', scheme_features + qfeatures_6),
 		('Scheme + Quantitative 9 epochs', scheme_features + qfeatures_9),
-		#('Scheme + Quantitative 12 epochs', scheme_features + qfeatures_12),
-		#('Scheme + Quantitative 15 epochs', scheme_features + qfeatures_15),
-		#('Scheme + Quantitative 18 epochs', scheme_features + qfeatures_18),
-		# Ablation study 2...
-		#('SchemeFull\\NumParams + quan9', scheme_features[1:] + qfeatures_9),
-		#('SchemeFull\\NumMACs + quan9', scheme_features[:1] + scheme_features[2:] + qfeatures_9),
-		#('SchemeFull\\NumLayers + quan9', scheme_features[:2] + scheme_features[3:] + qfeatures_9),
-		#('SchemeFull\\NumStages + quan9', scheme_features[:3] + scheme_features[4:] + qfeatures_9),
-		#('SchemeFull\\FirstLayerWidth + quan9', scheme_features[:4] + scheme_features[5:] + qfeatures_9),
-		#('SchemeFull\\LastLayerWidth + quan9', scheme_features[:5] + qfeatures_9),
-		#('SchemeLimited + Quantitative 3 epochs', scheme_limited_features + qfeatures_3),
-		#('SchemeLimited + Quantitative 6 epochs', scheme_limited_features + qfeatures_6),
-		#('SchemeLimited + Quantitative 9 epochs', scheme_limited_features + qfeatures_9),
-		#('SchemeLimited + Quantitative 12 epochs', scheme_limited_features + qfeatures_12),
-		#('SchemeLimited + Quantitative 15 epochs', scheme_limited_features + qfeatures_15),
-		#('SchemeLimited + Quantitative 18 epochs', scheme_limited_features + qfeatures_18),
-		#('Quantitative 3 epochs', qfeatures_3),
-		#('Quantitative 6 epochs', qfeatures_6),
-		#('Quantitative 9 epochs', qfeatures_9),
-		#('Quantitative 12 epochs', qfeatures_12),
-		#('Quantitative 15 epochs', qfeatures_15),
-		#('Quantitative 18 epochs', qfeatures_18),
-	]
+	])
+	if ABLATION_STUDY:
+		# Ablation study on combination of scheme features and features from training
+		feature_sets.extend([
+			('Scheme + Quantitative 12 epochs', scheme_features + qfeatures_12),
+			('Scheme + Quantitative 15 epochs', scheme_features + qfeatures_15),
+			('Scheme + Quantitative 18 epochs', scheme_features + qfeatures_18),
+			('SchemeLimited + Quantitative 3 epochs', scheme_limited_features + qfeatures_3),
+			('SchemeLimited + Quantitative 6 epochs', scheme_limited_features + qfeatures_6),
+			('SchemeLimited + Quantitative 9 epochs', scheme_limited_features + qfeatures_9),
+			('SchemeLimited + Quantitative 12 epochs', scheme_limited_features + qfeatures_12),
+			('SchemeLimited + Quantitative 15 epochs', scheme_limited_features + qfeatures_15),
+			('SchemeLimited + Quantitative 18 epochs', scheme_limited_features + qfeatures_18),
+			('Quantitative 3 epochs', qfeatures_3),
+			('Quantitative 6 epochs', qfeatures_6),
+			('Quantitative 9 epochs', qfeatures_9),
+			('Quantitative 12 epochs', qfeatures_12),
+			('Quantitative 15 epochs', qfeatures_15),
+			('Quantitative 18 epochs', qfeatures_18),
+		])
 	models = [
 		('1-NN', lambda : KNeighborsRegressor(n_neighbors = 1, algorithm = 'brute')),
 		('3-NN', lambda : KNeighborsRegressor(n_neighbors = 3, algorithm = 'brute')),
@@ -179,9 +181,6 @@ def run_experiments(dataset, output_dir):
 		('Random Forest (N=100)', lambda : ensemble.RandomForestRegressor(n_estimators=100)),
 		('Random Forest (N=200)', lambda : ensemble.RandomForestRegressor(n_estimators=200)),
 	]
-	if DEBUG:
-		feature_sets = feature_sets[:1]
-		models = models[:1]
 	if output_csv:
 		with open(output_csv, 'w') as f:
 			f.write('Model,Features,MeanAbsoluteError,NumViolations,MaxViolations,MonotonicityScore\n')
