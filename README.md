@@ -37,7 +37,7 @@ All code executed in this project was on a Python 3.7.1 environment with the fol
 - torchvision==0.5.0
 - pandas==0.23.4
 - scikit-learn==0.20.1
-- thop==0.1.1
+- thop==0.1.1.post2207130030
 
 ### Generating candidate network schemes
 The `scheme_generator.py` script will generate a JSON file that will contain all the possible network schemes. The generation constraints and properties are defined as constants in the script's `SETTINGS` dictionary, including the network depths, number of stages and the properties of each convolutional layer. A DFS scan over the predefined layer variables discovers all the possible schemes. Run example:
