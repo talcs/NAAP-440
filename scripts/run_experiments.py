@@ -230,8 +230,8 @@ def run_experiments(dataset, output_dir):
 				
 if __name__ == '__main__':
 	dataset_path = sys.argv[1]
-	output_csv = sys.argv[2] if len(sys.argv) > 2 else None
+	output_dir = sys.argv[2] if len(sys.argv) > 2 else None
 	
 	dataset = pd.read_csv(dataset_path)
-	run_experiments(dataset, output_csv)
+	run_experiments(dataset, output_dir)
 	
