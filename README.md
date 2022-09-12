@@ -18,7 +18,7 @@ Scheme fields:
 - **LastLayerWidth** : int - number of kernels in the last convolutional layer (dimensionality of the feature vector fed to the classifier)
 
 
-Fields from the training process, reported per epoch (i goes from 1 to 90 epochs):
+Fields from the training process, reported per epoch (**i** goes from 1 to 90 epochs):
 
 - **e{i}LossMean** : float (0 to inf) - Mean CE loss value over all epoch's SGD batches
 - **e{i}LossMedian** : float (0 to inf) - Median CE loss value over all epoch's SGD batches
