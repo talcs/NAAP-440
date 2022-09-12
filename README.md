@@ -4,24 +4,25 @@
 
 The dataset is provided as a part of this repository, in the file [naap440dataset.csv](naap440dataset.csv). It contains 440 rows with the following fields:
 
-- ModelId : int (1 to 440)
-- IsTest : int (0 or 1) - a binary flag that divides the samples into train and test sets
+- **ModelId** : int (1 to 440)
+- **IsTest** : int (0 or 1) - a binary flag that divides the samples into train and test sets
+- **MaxAccuracy** : float (0 to 1) - Max value over all fields e{i}Accuracy where i goes from 1 to 90 epochs. Max accuracy achieved on the CIFAR10 test set.
 
 Scheme fields:
 
-- NumParams : int - number of learnable parameters in the architecture
-- NumMACs : int - number of MACs of the architecture
-- NumLayers : int - number of convolutional layers in the architecture (architecture's depth)
-- NumStages : int - number of convolutional layers with `stride=2` in the architecture (there are currently no pooling layers in the architectures)
-- FirstLayerWidth : int - number of kernels in the first convolutional layer
-- LastLayerWidth : int - number of kernels in the last convolutional layer (dimensionality of the feature vector fed to the classifier)
-- MaxAccuracy : float (0 to 1) - Max value over all fields e{i}Accuracy where i goes from 1 to 90
+- **NumParams** : int - number of learnable parameters in the architecture
+- **NumMACs** : int - number of MACs of the architecture
+- **NumLayers** : int - number of convolutional layers in the architecture (architecture's depth)
+- **NumStages** : int - number of convolutional layers with `stride=2` in the architecture (there are currently no pooling layers in the architectures)
+- **FirstLayerWidth** : int - number of kernels in the first convolutional layer
+- **LastLayerWidth** : int - number of kernels in the last convolutional layer (dimensionality of the feature vector fed to the classifier)
+
 
 Fields from the training process, reported per epoch (i goes from 1 to 90 epochs):
 
-- e{i}LossMean : float (0 to inf) - Mean CE loss value over all epoch's SGD batches
-- e{i}LossMedian : float (0 to inf) - Median CE loss value over all epoch's SGD batches
-- e{i}Accuracy : float : (0 to 1) - Accuracy achieved on CIFAR10 test set after the epoch completed
+- **e{i}LossMean** : float (0 to inf) - Mean CE loss value over all epoch's SGD batches
+- **e{i}LossMedian** : float (0 to inf) - Median CE loss value over all epoch's SGD batches
+- **e{i}Accuracy** : float : (0 to 1) - Accuracy achieved on CIFAR10 test set after the epoch completed
 
 
 ## Reproducing the research
