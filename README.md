@@ -2,7 +2,7 @@
 
 ## Dataset Structure
 
-The dataset is provided as a part of this repository, in the file [naap440dataset.csv](naap440dataset.csv). It contains 440 rows with the following fields:
+The dataset is provided as a part of this repository, in the file [naap440.csv](naap440.csv). It contains 440 rows with the following fields:
 
 - **ModelId** : int (1 to 440)
 - **IsTest** : int (0 or 1) - a binary flag that divides the samples into train and test sets
@@ -82,13 +82,13 @@ $ python create_dataset.py generated_schemes.json raw_data
 ### Creating the CSV dataset
 At this stage, we have the raw data ready to be distilled. We now turn it into a tabular dataset saved as a CSV file. As a part of this process, the architectures will be divided into train and test sets.
 ```
-$ python data_dir_to_csv.py raw_data naap440dataset.csv 
+$ python data_dir_to_csv.py raw_data naap440.csv 
 ```
 
 ### Running the experiments
 Training and evaluating regression algorithms on the dataset. The Matplotlib package will be required if `PRODUCE_FIGURES` is set as `True`.
 ```
-$ python run_experiments.py naap440dataset.csv experiment_results
+$ python run_experiments.py naap440.csv experiment_results
 ```
 
 
