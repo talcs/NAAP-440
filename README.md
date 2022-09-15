@@ -60,7 +60,7 @@ The `scheme_generator.py` script will generate a JSON file that will contain all
 $ python scheme_generator.py generated_schemes.json
 ```
 
-The resulting JSON file will contain a list of schemes, where each scheme will be represented as a list of convolutional layer properties, for example:
+The resulting JSON file, [generated_schemes.json](generated_schemes.json), will contain a list of schemes, where each scheme will be represented as a list of convolutional layer properties, for example:
 ```
 [  # <- scheme list 
   [  # <- first scheme
@@ -93,6 +93,8 @@ This is the longest and most resource-consuming part of the research. Here we tr
 $ python create_dataset.py generated_schemes.json raw_data
 ```
 
+The result of running the `create_dataset.py` script is the [raw_data](raw_data directory), which contains a textual log file of each architecture's training process.
+
 
 ### Creating the CSV dataset
 At this stage, we have the raw data ready to be distilled. We now turn it into a tabular dataset saved as a CSV file. As a part of this process, the architectures will be divided into train and test sets.
@@ -100,10 +102,15 @@ At this stage, we have the raw data ready to be distilled. We now turn it into a
 $ python data_dir_to_csv.py raw_data naap440.csv 
 ```
 
+The result of the `data_dir_to_csv.py` is the [naap440.csv](naap440.csv file), which contains tabular data as described [above](#dataset-structure).
+
+
 ### Running the experiments
-Training and evaluating regression algorithms on the dataset. The Matplotlib package will be required if `PRODUCE_FIGURES` is set as `True`.
+At this step, we are training and evaluating various regression algorithms on the dataset. The Matplotlib package will be required if `PRODUCE_FIGURES` is set as `True`.
 ```
 $ python run_experiments.py naap440.csv experiment_results
 ```
+
+The result of the `run_experiments.py` script is the [experiment_results](experiment_results directory), which contains the evaulation of each regression algorithm tested. The quantitative scores are available in the [CSV file](experiment_results/results.csv), while the visual results are available in the [figures](experiment_results/figures) directory. The results and some of the figures are provided in the paper [NAAP-440 Dataset and Baseline for Network Architecture Accuracy Prediction](https://arxiv.org/abs/2209.06626).
 
 
