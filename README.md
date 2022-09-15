@@ -93,7 +93,7 @@ This is the longest and most resource-consuming part of the research. Here we tr
 $ python create_dataset.py generated_schemes.json raw_data
 ```
 
-The result of running the `create_dataset.py` script is the [raw_data](raw_data directory), which contains a textual log file of each architecture's training process.
+The result of running the `create_dataset.py` script is the [raw_data directory](raw_data), which contains a textual log file of each architecture's training process.
 
 
 ### Creating the CSV dataset
@@ -102,7 +102,7 @@ At this stage, we have the raw data ready to be distilled. We now turn it into a
 $ python data_dir_to_csv.py raw_data naap440.csv 
 ```
 
-The result of the `data_dir_to_csv.py` is the [naap440.csv](naap440.csv file), which contains tabular data as described [above](#dataset-structure).
+The result of the `data_dir_to_csv.py` is the [naap440.csv file](naap440.csv), which contains tabular data as described [above](#dataset-structure).
 
 
 ### Running the experiments
@@ -111,6 +111,6 @@ At this step, we are training and evaluating various regression algorithms on th
 $ python run_experiments.py naap440.csv experiment_results
 ```
 
-The result of the `run_experiments.py` script is the [experiment_results](experiment_results directory), which contains the evaulation of each regression algorithm tested. The quantitative scores are available in the [CSV file](experiment_results/results.csv), while the visual results are available in the [figures](experiment_results/figures) directory. The results and some of the figures are provided in the paper [NAAP-440 Dataset and Baseline for Network Architecture Accuracy Prediction](https://arxiv.org/abs/2209.06626).
+The result of the `run_experiments.py` script is the [experiment_results directory](experiment_results), which contains the evaulation of each regression algorithm tested. The quantitative scores are available in the [CSV file](experiment_results/results.csv), while the visual results are available in the [figures](experiment_results/figures) directory. The results and some of the figures are provided in the paper [NAAP-440 Dataset and Baseline for Network Architecture Accuracy Prediction](https://arxiv.org/abs/2209.06626).
 
 
