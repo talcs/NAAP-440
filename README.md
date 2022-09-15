@@ -1,8 +1,23 @@
 # NAAP-440 Dataset
 
+This repository is the implementation of the paper [NAAP-440 Dataset and Baseline for Network Architecture Accuracy Prediction](https://arxiv.org/abs/2209.06626).
+
+The NAAP-440 dataset is available on [Kaggle](https://www.kaggle.com/datasets/talcs1/naap-440) and is also provided as a part of this repository, in the file [naap440.csv](naap440.csv).
+
+### Citing NAAP-440
+
+```
+@article{hakim2022naap,
+  title={NAAP-440 Dataset and Baseline for Network Architecture Accuracy Prediction},
+  author={Hakim, Tal},
+  journal={arXiv preprint arXiv:2209.06626},
+  year={2022}
+}
+```
+
 ## Dataset Structure
 
-The dataset is provided as a part of this repository, in the file [naap440.csv](naap440.csv). It contains 440 rows with the following fields:
+The NAAP-440 dataset contains 440 rows with the following fields:
 
 - **ModelId** : int (1 to 440)
 - **IsTest** : int (0 or 1) - a binary flag that divides the samples into train and test sets
