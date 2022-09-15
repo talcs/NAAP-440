@@ -1,6 +1,6 @@
 # NAAP-440 Dataset
 
-This repository is the implementation of the paper [NAAP-440 Dataset and Baseline for Network Architecture Accuracy Prediction](https://arxiv.org/abs/2209.06626).
+This repository is the implementation of the paper [NAAP-440 Dataset and Baseline for Neural Architecture Accuracy Prediction](https://arxiv.org/abs/2209.06626).
 
 The NAAP-440 dataset is available on [Kaggle](https://www.kaggle.com/datasets/talcs1/naap-440) and is also provided as a part of this repository, in the file [naap440.csv](naap440.csv).
 
@@ -8,7 +8,7 @@ The NAAP-440 dataset is available on [Kaggle](https://www.kaggle.com/datasets/ta
 
 ```
 @article{hakim2022naap,
-  title={NAAP-440 Dataset and Baseline for Network Architecture Accuracy Prediction},
+  title={NAAP-440 Dataset and Baseline for Neural Architecture Accuracy Prediction},
   author={Hakim, Tal},
   journal={arXiv preprint arXiv:2209.06626},
   year={2022}
@@ -111,6 +111,6 @@ At this step, we are training and evaluating various regression algorithms on th
 $ python run_experiments.py naap440.csv experiment_results
 ```
 
-The result of the `run_experiments.py` script is the [experiment_results directory](experiment_results), which contains the evaulation of each regression algorithm tested. The quantitative scores are available in the [CSV file](experiment_results/results.csv), while the visual results are available in the [figures directory](experiment_results/figures). The results and some of the figures are provided in the paper [NAAP-440 Dataset and Baseline for Network Architecture Accuracy Prediction](https://arxiv.org/abs/2209.06626).
+The result of the `run_experiments.py` script is the [experiment_results directory](experiment_results), which contains the evaulation of each regression algorithm tested. The quantitative scores are available in the [CSV file](experiment_results/results.csv), while the visual results are available in the [figures directory](experiment_results/figures). The results and some of the figures are provided in the paper [NAAP-440 Dataset and Baseline for Neural Architecture Accuracy Prediction](https://arxiv.org/abs/2209.06626).
 
 
