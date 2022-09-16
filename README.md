@@ -42,9 +42,10 @@ Fields from the training process, reported per epoch (**i** goes from 1 to 90 ep
 
 ## Baseline Results
 
-| | <td colspan="4">**MAE / Monotonicity Score / #Monotonicity Violations** |
-| :--- | :---: | :---: | :---: | :---: |
+All entries on the table are formatted as **MAE / Monotonicity Score / #Monotonicity Violations**. For more details, please check the baseline section in the paper [NAAP-440 Dataset and Baseline for Neural Architecture Accuracy Prediction](https://arxiv.org/abs/2209.06626).
+
 | Algorithm | 100.0% acceleration (0 epochs) | 96.7% acceleration (3 epochs) | 93.3% acceleration (6 epochs) | 90.0% acceleration (9 epochs) | 
+| :--- | :---: | :---: | :---: | :---: |
 | 1-NN | 0.007 / 0.933 / 52  | 0.009 / 0.929 / 55  | 0.007 / 0.940 / 47  | 0.006 / 0.959 / 32  |
 | 3-NN | 0.009 / 0.918 / 64  | 0.007 / 0.944 / 44  | 0.007 / 0.950 / 39  | 0.007 / 0.951 / 38  |
 | 5-NN | 0.010 / 0.908 / 72  | 0.008 / 0.942 / 45  | 0.007 / 0.941 / 46  | 0.007 / 0.949 / 40  |
