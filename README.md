@@ -19,11 +19,11 @@ The NAAP-440 dataset is available on [Kaggle](https://www.kaggle.com/datasets/ta
 
 The NAAP-440 dataset contains 440 rows with the following fields:
 
-- **ModelId** : int (1 to 440)
+- **ModelId** : int (1 to 440) - ID of the candidate scheme/architecture
 - **IsTest** : int (0 or 1) - a binary flag that divides the samples into train and test sets
-- **MaxAccuracy** : float (0 to 1) - Max value over all fields e{i}Accuracy where i goes from 1 to 90 epochs. Max accuracy achieved on the CIFAR10 test set.
+- **MaxAccuracy** : float (0 to 1) - Max value over all fields **e{i}Accuracy**, where i goes from 1 to 90 epochs. In other words, this field is the max accuracy achieved on the CIFAR10 test set by the trained model.
 
-Scheme fields:
+Scheme fields (further shceme information is available in [generated_schemes.json](generated_schemes.json)):
 
 - **NumParams** : int - number of learnable parameters in the architecture
 - **NumMACs** : int - number of MACs of the architecture
