@@ -5,6 +5,7 @@ import json
 
 MAX_EPOCH = 90
 TEST_SET_SIZE = 40
+DEFAULT_DATASET_VERSION = 1
 
 TRAIN_FILENAME_XTOR = re.compile(r'^scheme_(\d+).txt$')
 EPOCH_XTOR = re.compile(r'Epoch (\d+),')
@@ -30,6 +31,8 @@ def extract_data_from_file(path):
 				record['num_stages'] = len([b for b in scheme if b['stride'] > 1])
 				record['first_layer_width'] = scheme[0]['width']
 				record['last_layer_width'] = scheme[-1]['width']
+				record['num_skip_connections'] = len([b for b in scheme if b['residual']])
+				record['num_prf_layers'] = len([b for b in scheme if b['stride'] > 1 and b['kernel_size'] == 1]) # PRF == Partial Receptive Field
 			profile_re = PROFILE_XTOR.search(l)
 			if profile_re:
 				num_params = int(profile_re.group(1))
@@ -52,22 +55,34 @@ def extract_data_from_file(path):
 	
 	return record
 
-def get_csv_header():
-	header = 'ModelId,IsTest,NumParams,NumMACs,NumLayers,NumStages,FirstLayerWidth,LastLayerWidth,MaxAccuracy'
+def get_csv_header(version):
+	if version == 1:
+		scheme_fields_addition = ''
+	elif version == 2:
+		scheme_fields_addition = ',NumSkipConnections,NumPartialRFLayers'
+	else:
+		raise Exception(f'Unknown version: {version}')
+	header = f'ModelId,IsTest,NumParams,NumMACs,NumLayers,NumStages,FirstLayerWidth,LastLayerWidth{scheme_fields_addition},MaxAccuracy'
 	for epoch in range(1, MAX_EPOCH + 1):
 		header += ','
 		header += ','.join(f'e{epoch}{metric}' for metric in ('LossMean','LossMedian','Accuracy'))
 	return header
 	
-def file_data_to_csv_line(record):
-	line = ','.join(str(record[field]) for field in ('model_id', 'is_test', 'num_params', 'num_macs', 'num_layers', 'num_stages', 'first_layer_width', 'last_layer_width', 'max_accuracy'))
+def file_data_to_csv_line(record, version):
+	if version == 1:
+		scheme_fields = ('model_id', 'is_test', 'num_params', 'num_macs', 'num_layers', 'num_stages', 'first_layer_width', 'last_layer_width', 'max_accuracy')
+	elif version == 2:
+		scheme_fields = ('model_id', 'is_test', 'num_params', 'num_macs', 'num_layers', 'num_stages', 'first_layer_width', 'last_layer_width', 'num_skip_connections', 'num_prf_layers', 'max_accuracy')
+	else:
+		raise Exception(f'Unknown version: {version}')
+	line = ','.join(str(record[field]) for field in scheme_fields)
 	for epoch in range(1, MAX_EPOCH + 1):
 		line += ','
 		line += ','.join(str(record[f'e{epoch}{metric}']) for metric in ('LossMean','LossMedian','Accuracy'))
 		
 	return line
 
-def data_dir_to_csv(input_dir, output_file):
+def data_dir_to_csv(input_dir, output_file, version = DEFAULT_DATASET_VERSION):
 	filenames = [v for v in os.listdir(input_dir) if TRAIN_FILENAME_XTOR.search(v)]
 	data = [extract_data_from_file(os.path.join(input_dir, fn)) for fn in filenames]
 	# Dividing the accuracy-sorted data into TEST_SET_SIZE bins
@@ -78,12 +93,13 @@ def data_dir_to_csv(input_dir, output_file):
 		# The central record of each bin is allocated for the test set.
 		record['is_test'] = int(i - bin_middle_index >= 0 and (i - bin_middle_index) % bin_size == 0)
 	with open(output_file, 'w') as f:
-		f.write(get_csv_header() + '\n')
+		f.write(get_csv_header(version) + '\n')
 		for record in sorted(data, key = lambda x : x['model_id']):
-			f.write(file_data_to_csv_line(record) + '\n')
+			f.write(file_data_to_csv_line(record, version) + '\n')
 
 if __name__ == '__main__':
 	input_dir = sys.argv[1]
 	output_file = sys.argv[2]
+	version = int(sys.argv[3]) if len(sys.argv) > 3 else DEFAULT_DATASET_VERSION
 
-	data_dir_to_csv(input_dir, output_file)
+	data_dir_to_csv(input_dir, output_file, version)

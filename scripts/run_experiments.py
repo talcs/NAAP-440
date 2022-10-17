@@ -4,13 +4,18 @@ import random
 
 import numpy as np
 import pandas as pd
-from sklearn.neighbors import KNeighborsRegressor
+from sklearn import neighbors
 from sklearn import linear_model
 from sklearn import tree
 from sklearn import ensemble
-from sklearn import ensemble
 from sklearn import svm
 from sklearn import preprocessing
+
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+from custom_regressors import LinearRegressionWithPolynomialActivation, LinearRegressionOnRandomFeatureSubset, CustomVotingRegressor
+from custom_regressors import LinearRegressionWithExpActivation, LinearRegressionWithLogActivation, CustomWeightedVotingRegressor
+from custom_regressors import PerturbatedLinearRegressorEnsemble, LinearRegressionWithSigmoidActivation
 
 
 SEEDS = [20220905 + i for i in range(5)]
@@ -21,20 +26,6 @@ ABLATION_STUDY = False
 LOG_PARAMS_AND_MACS = True
 
 compute_mae = lambda predictions, ground_truth : np.mean(np.abs(predictions - ground_truth))
-
-
-class LinearRegressionWithPolynomialActivation:
-	def __init__(self, polynomial_degree):
-		self.polynomial_degree = polynomial_degree
-		self.linear_regression = linear_model.LinearRegression()
-		
-	def fit(self, X, y):
-		# Polynomial activation = (InnerProduct + 1)^dgree
-		pol_y = y ** (1 / float(self.polynomial_degree)) - 1
-		self.linear_regression.fit(X, pol_y)
-		
-	def predict(self, X):
-		return (self.linear_regression.predict(X) + 1) ** self.polynomial_degree
 
 
 def set_random_seed(seed):
@@ -61,7 +52,7 @@ def find_median_index(entries, keyfield):
 	return indices[len(indices) // 2]
 	
 
-def run_experiment(trainset, testset, model_ctor, features, seeds = SEEDS):
+def run_experiment(trainset, testset, model_ctor, features, seeds = SEEDS, add_random_noise_to_predictions = False):
 	model = model_ctor()
 	X_train = trainset[features].astype('float64')
 	Y_train = trainset.MaxAccuracy
@@ -74,8 +65,11 @@ def run_experiment(trainset, testset, model_ctor, features, seeds = SEEDS):
 		set_random_seed(seed)
 		scaler = preprocessing.StandardScaler().fit(X_train)
 		model.fit(scaler.transform(X_train), Y_train)
-		Y_test = model.predict(scaler.transform(X_test))	
-	
+		Y_test = model.predict(scaler.transform(X_test))
+		if add_random_noise_to_predictions:
+			# Adding a negligible Gaussian noise to the predictions,
+			# used to strongly penalize settings that predict the same value to many samples (penalize on violations)
+			Y_test += np.random.normal(0, 1e-5, size = Y_test.shape)	
 		mae = compute_mae(Y_test, GT_test)
 		num_violations, max_violations, ms, sorting = compute_monotonicity_score(Y_test)
 		seed_results.append({'mae' : mae, 'num_violations' : num_violations, 'max_violations' : max_violations, 'ms' : ms, 'sorting' : sorting, 'pred' : Y_test})
@@ -109,23 +103,8 @@ def create_scatter_plot(gt_series, pred_series, save_path):
 	plt.grid()
 	plt.legend()
 	plt.savefig(save_path, bbox_inches = 'tight')
-
-def run_experiments(dataset, output_dir):
-	output_csv = None
-	figures_dir = None
-	if output_dir is not None:
-		os.mkdir(output_dir)
-		output_csv = os.path.join(output_dir, 'results.csv')
-		if PRODUCE_FIGURES:
-			figures_dir = os.path.join(output_dir, 'figures')
-			os.mkdir(figures_dir)
-	dataset = dataset.sort_values('MaxAccuracy')
-	if LOG_PARAMS_AND_MACS:
-		dataset['NumParams'] = np.log(dataset['NumParams'])
-		dataset['NumMACs'] = np.log(dataset['NumMACs'])
-	trainset = dataset[dataset.IsTest == 0]
-	testset = dataset[dataset.IsTest == 1]
 	
+def get_feature_name_groups():
 	scheme_features = ['NumParams', 'NumMACs', 'NumLayers', 'NumStages', 'FirstLayerWidth', 'LastLayerWidth']
 	scheme_limited_features = ['NumParams', 'NumStages']
 	quantitative_features = []
@@ -138,6 +117,15 @@ def run_experiments(dataset, output_dir):
 	qfeatures_15 = quantitative_features[:15*3]
 	qfeatures_18 = quantitative_features[:18*3]
 	
+	feature_name_groups = (scheme_features, scheme_limited_features, quantitative_features,
+							qfeatures_3, qfeatures_6, qfeatures_9, qfeatures_12, qfeatures_15, qfeatures_18)
+	
+	
+	return feature_name_groups
+	
+def get_feature_sets(feature_name_groups):
+	(scheme_features, scheme_limited_features, quantitative_features,
+	qfeatures_3, qfeatures_6, qfeatures_9, qfeatures_12, qfeatures_15, qfeatures_18) = feature_name_groups
 	# Notes:
 	# As described in the paper, the ablation studies showed that:
 	#  1. When only using scheme features (no features from epochs), the limited set of features (NumParams + NumStages) works best
@@ -180,36 +168,69 @@ def run_experiments(dataset, output_dir):
 			('Quantitative 15 epochs', qfeatures_15),
 			('Quantitative 18 epochs', qfeatures_18),
 		])
+		
+	return feature_sets
+	
+def get_regression_models(extended = False):
 	models = [
-		('1-NN', lambda : KNeighborsRegressor(n_neighbors = 1, algorithm = 'brute')),
-		('3-NN', lambda : KNeighborsRegressor(n_neighbors = 3, algorithm = 'brute')),
-		('5-NN', lambda : KNeighborsRegressor(n_neighbors = 5, algorithm = 'brute')),
-		('7-NN', lambda : KNeighborsRegressor(n_neighbors = 7, algorithm = 'brute')),
-		('9-NN', lambda : KNeighborsRegressor(n_neighbors = 9, algorithm = 'brute')),
-		('Linear Regression', lambda : linear_model.LinearRegression()),
-		('Linear Regression D=0.5', lambda : LinearRegressionWithPolynomialActivation(0.5)),
-		('Linear Regression D=0.25', lambda : LinearRegressionWithPolynomialActivation(0.25)),
-		('Decision Tree', lambda : tree.DecisionTreeRegressor()),
-		('Gradient Boosting (N=25)', lambda : ensemble.GradientBoostingRegressor(n_estimators = 25)),
-		('Gradient Boosting (N=50)', lambda : ensemble.GradientBoostingRegressor(n_estimators = 50)),
-		('Gradient Boosting (N=100)', lambda : ensemble.GradientBoostingRegressor(n_estimators = 100)),
-		('Gradient Boosting (N=200)', lambda : ensemble.GradientBoostingRegressor(n_estimators = 200)),
-		('AdaBoost (N=25)', lambda : ensemble.AdaBoostRegressor(n_estimators = 25)),
-		('AdaBoost (N=50)', lambda : ensemble.AdaBoostRegressor(n_estimators = 50)),
-		('AdaBoost (N=100)', lambda : ensemble.AdaBoostRegressor(n_estimators = 100)),
-		('AdaBoost (N=200)', lambda : ensemble.AdaBoostRegressor(n_estimators = 200)),
-		('SVR (RBF kernel)', lambda : svm.SVR(kernel = 'rbf', epsilon = 0.001, C=1e-1)),
-		('SVR (Polynomial kernel)', lambda : svm.SVR(kernel = 'poly', epsilon = 0.001, C=1e-1)),
-		('SVR (Linear kernel)', lambda : svm.SVR(kernel = 'linear', epsilon = 0.001, C=1e-1)),
-		('Random Forest (N=25)', lambda : ensemble.RandomForestRegressor(n_estimators=25)),
-		('Random Forest (N=50)', lambda : ensemble.RandomForestRegressor(n_estimators=50)),
-		('Random Forest (N=100)', lambda : ensemble.RandomForestRegressor(n_estimators=100)),
-		('Random Forest (N=200)', lambda : ensemble.RandomForestRegressor(n_estimators=200)),
+		('1-NN', lambda : neighbors.KNeighborsRegressor(n_neighbors = 1, algorithm = 'brute'), {'interpolation'}),
+		('3-NN', lambda : neighbors.KNeighborsRegressor(n_neighbors = 3, algorithm = 'brute'), {'interpolation'}),
+		('5-NN', lambda : neighbors.KNeighborsRegressor(n_neighbors = 5, algorithm = 'brute'), {'interpolation'}),
+		('7-NN', lambda : neighbors.KNeighborsRegressor(n_neighbors = 7, algorithm = 'brute'), {'interpolation'}),
+		('9-NN', lambda : neighbors.KNeighborsRegressor(n_neighbors = 9, algorithm = 'brute'), {'interpolation'}),
+		('Linear Regression', lambda : linear_model.LinearRegression(), {'interpolation', 'dual_extrapolation', 'left_extrapolation', 'right_extrapolation'}),
+		('Linear Regression D=0.5', lambda : LinearRegressionWithPolynomialActivation(0.5), {'interpolation', 'dual_extrapolation', 'left_extrapolation', 'right_extrapolation'}),
+		('Linear Regression D=0.25', lambda : LinearRegressionWithPolynomialActivation(0.25), {'interpolation', 'dual_extrapolation', 'left_extrapolation', 'right_extrapolation'}),
+		('Decision Tree', lambda : tree.DecisionTreeRegressor(), {'interpolation'}),
+		('Gradient Boosting (N=25)', lambda : ensemble.GradientBoostingRegressor(n_estimators = 25), {'interpolation'}),
+		('Gradient Boosting (N=50)', lambda : ensemble.GradientBoostingRegressor(n_estimators = 50), {'interpolation'}),
+		('Gradient Boosting (N=100)', lambda : ensemble.GradientBoostingRegressor(n_estimators = 100), {'interpolation'}),
+		('Gradient Boosting (N=200)', lambda : ensemble.GradientBoostingRegressor(n_estimators = 200), {'interpolation'}),
+		('AdaBoost (N=25)', lambda : ensemble.AdaBoostRegressor(n_estimators = 25), {'interpolation'}),
+		('AdaBoost (N=50)', lambda : ensemble.AdaBoostRegressor(n_estimators = 50), {'interpolation'}),
+		('AdaBoost (N=100)', lambda : ensemble.AdaBoostRegressor(n_estimators = 100), {'interpolation'}),
+		('AdaBoost (N=200)', lambda : ensemble.AdaBoostRegressor(n_estimators = 200), {'interpolation'}),
+		('SVR (RBF kernel)', lambda : svm.SVR(kernel = 'rbf', epsilon = 0.001, C=1e-1), {'interpolation'}),
+		('SVR (Polynomial kernel)', lambda : svm.SVR(kernel = 'poly', epsilon = 0.001, C=1e-1), {'interpolation', 'dual_extrapolation', 'left_extrapolation', 'right_extrapolation'}),
+		('SVR (Linear kernel)', lambda : svm.SVR(kernel = 'linear', epsilon = 0.001, C=1e-1), {'interpolation', 'dual_extrapolation', 'left_extrapolation', 'right_extrapolation'}),
+		('Random Forest (N=25)', lambda : ensemble.RandomForestRegressor(n_estimators=25), {'interpolation'}),
+		('Random Forest (N=50)', lambda : ensemble.RandomForestRegressor(n_estimators=50), {'interpolation'}),
+		('Random Forest (N=100)', lambda : ensemble.RandomForestRegressor(n_estimators=100), {'interpolation'}),
+		('Random Forest (N=200)', lambda : ensemble.RandomForestRegressor(n_estimators=200), {'interpolation'}),
 	]
+	if extended:
+		models.extend([
+			('Linear Regression (D=2)', lambda : LinearRegressionWithPolynomialActivation(2), {'interpolation', 'dual_extrapolation', 'left_extrapolation', 'right_extrapolation'}),
+			('Linear Regression Exp', lambda : LinearRegressionWithExpActivation(), {'interpolation', 'dual_extrapolation', 'left_extrapolation', 'right_extrapolation'}),
+			('Linear Regression Log', lambda : LinearRegressionWithLogActivation(), {'interpolation', 'dual_extrapolation', 'left_extrapolation', 'right_extrapolation'}),
+			('Linear Regression Sigmoid', lambda : LinearRegressionWithSigmoidActivation(), {'interpolation', 'dual_extrapolation', 'left_extrapolation', 'right_extrapolation'})
+		])
+	
+	return models
+
+
+def run_experiments(dataset, output_dir = None):
+	output_csv = None
+	figures_dir = None
+	if output_dir is not None:
+		os.mkdir(output_dir)
+		output_csv = os.path.join(output_dir, 'results.csv')
+		if PRODUCE_FIGURES:
+			figures_dir = os.path.join(output_dir, 'figures')
+			os.mkdir(figures_dir)
+	dataset = dataset.sort_values('MaxAccuracy')
+	if LOG_PARAMS_AND_MACS:
+		dataset['NumParams'] = np.log(dataset['NumParams'])
+		dataset['NumMACs'] = np.log(dataset['NumMACs'])
+	trainset = dataset[dataset.IsTest == 0]
+	testset = dataset[dataset.IsTest == 1]
+	feature_name_groups = get_feature_name_groups()
+	feature_sets = get_feature_sets(feature_name_groups)
+	models = get_regression_models()
 	if output_csv:
 		with open(output_csv, 'w') as f:
 			f.write('Model,Features,MeanAbsoluteError,NumViolations,MaxViolations,MonotonicityScore\n')
-	for model_name, model_ctor in models:
+	for model_name, model_ctor, regression_mode_ignored in models:
 		if not output_csv:
 			print(f'Model: {model_name}:')
 			print(f'---------------')
