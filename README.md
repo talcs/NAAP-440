@@ -1,6 +1,6 @@
 # NAAP-440 Dataset
 
-This repository is the implementation of the paper [NAAP-440 Dataset and Baseline for Network Architecture Accuracy Prediction](https://arxiv.org/abs/2209.06626).
+This repository is the implementation of the paper [NAAP-440 Dataset and Baseline for Neural Architecture Accuracy Prediction](https://arxiv.org/abs/2209.06626), dealing with proposing solutions for accelerating Neural Architecture Search (NAS).
 
 The NAAP-440 dataset is available on [Kaggle](https://www.kaggle.com/datasets/talcs1/naap-440) and is also provided as a part of this repository, in the file [naap440.csv](naap440.csv).
 
@@ -8,7 +8,7 @@ The NAAP-440 dataset is available on [Kaggle](https://www.kaggle.com/datasets/ta
 
 ```
 @article{hakim2022naap,
-  title={NAAP-440 Dataset and Baseline for Network Architecture Accuracy Prediction},
+  title={NAAP-440 Dataset and Baseline for Neural Architecture Accuracy Prediction},
   author={Hakim, Tal},
   journal={arXiv preprint arXiv:2209.06626},
   year={2022}
@@ -19,11 +19,11 @@ The NAAP-440 dataset is available on [Kaggle](https://www.kaggle.com/datasets/ta
 
 The NAAP-440 dataset contains 440 rows with the following fields:
 
-- **ModelId** : int (1 to 440)
+- **ModelId** : int (1 to 440) - ID of the candidate scheme/architecture
 - **IsTest** : int (0 or 1) - a binary flag that divides the samples into train and test sets
-- **MaxAccuracy** : float (0 to 1) - Max value over all fields e{i}Accuracy where i goes from 1 to 90 epochs. Max accuracy achieved on the CIFAR10 test set.
+- **MaxAccuracy** : float (0 to 1) - Max value over all fields **e{i}Accuracy**, where i goes from 1 to 90 epochs. In other words, this field is the max accuracy achieved on the CIFAR10 test set by the trained model.
 
-Scheme fields:
+Scheme fields (further shceme information is available in [generated_schemes.json](generated_schemes.json)):
 
 - **NumParams** : int - number of learnable parameters in the architecture
 - **NumMACs** : int - number of MACs of the architecture
@@ -38,6 +38,38 @@ Fields from the training process, reported per epoch (**i** goes from 1 to 90 ep
 - **e{i}LossMean** : float (0 to inf) - Mean CE loss value over all epoch's SGD batches
 - **e{i}LossMedian** : float (0 to inf) - Median CE loss value over all epoch's SGD batches
 - **e{i}Accuracy** : float : (0 to 1) - Accuracy achieved on CIFAR10 test set after the epoch completed
+
+
+## Baseline Results
+
+All entries on the table are formatted as **MAE / Monotonicity Score / #Monotonicity Violations**. For more details, please check the baseline section in the paper [NAAP-440 Dataset and Baseline for Neural Architecture Accuracy Prediction](https://arxiv.org/abs/2209.06626).
+
+| Regression Algorithm | 100.0% acceleration (0 epochs) | 96.7% acceleration (3 epochs) | 93.3% acceleration (6 epochs) | 90.0% acceleration (9 epochs) | 
+| :--- | :---: | :---: | :---: | :---: |
+| 1-NN | 0.007 / 0.933 / 52  | 0.009 / 0.929 / 55  | 0.007 / 0.940 / 47  | 0.006 / 0.959 / 32  |
+| 3-NN | 0.009 / 0.918 / 64  | 0.007 / 0.944 / 44  | 0.007 / 0.950 / 39  | 0.007 / 0.951 / 38  |
+| 5-NN | 0.010 / 0.908 / 72  | 0.008 / 0.942 / 45  | 0.007 / 0.941 / 46  | 0.007 / 0.949 / 40  |
+| 7-NN | 0.009 / 0.909 / 71  | 0.007 / 0.950 / 39  | 0.007 / 0.951 / 38  | 0.006 / 0.962 / 30  |
+| 9-NN | 0.010 / 0.914 / 67  | 0.009 / 0.942 / 45  | 0.007 / 0.960 / 31  | 0.007 / 0.951 / 38  |
+| Linear Regression | 0.017 / 0.918 / 64  | 0.009 / 0.926 / 58  | 0.008 / 0.941 / 46  | 0.007 / 0.942 / 45  |
+|Linear Regression (D=0.5) | 0.015 / 0.919 / 63  | 0.008 / 0.932 / 53  | 0.007 / 0.942 / 45  | 0.006 / 0.947 / 41  |
+|Linear Regression (D=0.25) | 0.013 / 0.919 / 63  | 0.008 / 0.935 / 51  | 0.007 / 0.942 / 45  | 0.006 / 0.947 / 41  |
+|Decision Tree | 0.007 / 0.931 / 54  | 0.007 / 0.929 / 55  | 0.008 / 0.924 / 59  | 0.007 / 0.933 / 52  |
+|Gradient Boosting (N=25) | 0.009 / 0.944 / 44  | 0.008 / 0.953 / 37  | 0.006 / 0.951 / 38  | 0.006 / 0.958 / 33  |
+|Gradient Boosting (N=50) | 0.007 / 0.940 / 47  | 0.006 / 0.955 / 35  | 0.006 / 0.953 / 37  | 0.005 / 0.956 / 34  |
+|Gradient Boosting (N=100) | 0.006 / 0.946 / 42  | 0.006 / 0.958 / 33  | 0.006 / 0.960 / 31  | 0.006 / 0.959 / 32  |
+|Gradient Boosting (N=200) | 0.005 / 0.945 / 43  | 0.006 / 0.951 / 38  | 0.006 / 0.962 / 30  | 0.006 / 0.958 / 33  |
+|AdaBoost (N=25) | 0.010 / 0.933 / 52  | 0.009 / 0.947 / 41  | 0.007 / 0.953 / 37  | 0.006 / 0.955 / 35  |
+|AdaBoost (N=50) | 0.010 / 0.933 / 52  | 0.008 / 0.945 / 43  | 0.006 / 0.953 / 37  | 0.006 / 0.958 / 33  |
+|AdaBoost (N=100) | 0.010 / 0.933 / 52  | 0.008 / 0.944 / 44  | 0.007 / 0.951 / 38  | 0.005 / 0.955 / 35  |
+|AdaBoost (N=200) | 0.010 / 0.933 / 52  | 0.008 / 0.944 / 44  | 0.007 / 0.951 / 38  | 0.006 / 0.954 / 36  |
+|SVR (RBF kernel) | 0.009 / 0.913 / 68  | 0.007 / 0.949 / 40  | 0.005 / 0.962 / 30  | 0.005 / 0.960 / 31  |
+|SVR (Polynomial kernel) | 0.020 / 0.911 / 69  | 0.008 / 0.940 / 47  | 0.009 / 0.919 / 63  | 0.010 / 0.918 / 64  |
+|SVR (Linear kernel) | 0.017 / 0.917 / 65  | 0.009 / 0.933 / 52  | 0.008 / 0.944 / 44  | 0.007 / 0.947 / 41  |
+|Random Forest (N=25) | 0.007 / 0.935 / 51  | 0.006 / 0.954 / 36  | 0.005 / 0.958 / 33  | 0.004 / 0.964 / 28  |
+|Random Forest (N=50) | 0.006 / 0.936 / 50  | 0.006 / 0.956 / 34  | 0.005 / 0.963 / 29  | 0.005 / 0.964 / 28  |
+|Random Forest (N=100) | 0.006 / 0.939 / 48  | 0.005 / 0.956 / 34  | 0.005 / 0.967 / 26  | 0.004 / 0.965 / 27  |
+|Random Forest (N=200) | 0.006 / 0.939 / 48  | 0.005 / 0.959 / 32  | 0.005 / 0.968 / 25  | 0.004 / 0.968 / 25  |
 
 
 ## Reproducing the research
@@ -111,6 +143,6 @@ At this step, we are training and evaluating various regression algorithms on th
 $ python run_experiments.py naap440.csv experiment_results
 ```
 
-The result of the `run_experiments.py` script is the [experiment_results directory](experiment_results), which contains the evaulation of each regression algorithm tested. The quantitative scores are available in the [CSV file](experiment_results/results.csv), while the visual results are available in the [figures directory](experiment_results/figures). The results and some of the figures are provided in the paper [NAAP-440 Dataset and Baseline for Network Architecture Accuracy Prediction](https://arxiv.org/abs/2209.06626).
+The result of the `run_experiments.py` script is the [experiment_results directory](experiment_results), which contains the evaulation of each regression algorithm tested. The quantitative scores are available in the [CSV file](experiment_results/results.csv), while the visual results are available in the [figures directory](experiment_results/figures). The results and some of the figures are provided in the paper [NAAP-440 Dataset and Baseline for Neural Architecture Accuracy Prediction](https://arxiv.org/abs/2209.06626).
 
 
