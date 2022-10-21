@@ -179,8 +179,8 @@ def get_regression_models(extended = False):
 		('7-NN', lambda : neighbors.KNeighborsRegressor(n_neighbors = 7, algorithm = 'brute'), {'interpolation'}),
 		('9-NN', lambda : neighbors.KNeighborsRegressor(n_neighbors = 9, algorithm = 'brute'), {'interpolation'}),
 		('Linear Regression', lambda : linear_model.LinearRegression(), {'interpolation', 'dual_extrapolation', 'left_extrapolation', 'right_extrapolation'}),
-		('Linear Regression D=0.5', lambda : LinearRegressionWithPolynomialActivation(0.5), {'interpolation', 'dual_extrapolation', 'left_extrapolation', 'right_extrapolation'}),
-		('Linear Regression D=0.25', lambda : LinearRegressionWithPolynomialActivation(0.25), {'interpolation', 'dual_extrapolation', 'left_extrapolation', 'right_extrapolation'}),
+		('Linear Regression (D=0.5)', lambda : LinearRegressionWithPolynomialActivation(0.5), {'interpolation', 'dual_extrapolation', 'left_extrapolation', 'right_extrapolation'}),
+		('Linear Regression (D=0.25)', lambda : LinearRegressionWithPolynomialActivation(0.25), {'interpolation', 'dual_extrapolation', 'left_extrapolation', 'right_extrapolation'}),
 		('Decision Tree', lambda : tree.DecisionTreeRegressor(), {'interpolation'}),
 		('Gradient Boosting (N=25)', lambda : ensemble.GradientBoostingRegressor(n_estimators = 25), {'interpolation'}),
 		('Gradient Boosting (N=50)', lambda : ensemble.GradientBoostingRegressor(n_estimators = 50), {'interpolation'}),
@@ -201,9 +201,9 @@ def get_regression_models(extended = False):
 	if extended:
 		models.extend([
 			('Linear Regression (D=2)', lambda : LinearRegressionWithPolynomialActivation(2), {'interpolation', 'dual_extrapolation', 'left_extrapolation', 'right_extrapolation'}),
-			('Linear Regression Exp', lambda : LinearRegressionWithExpActivation(), {'interpolation', 'dual_extrapolation', 'left_extrapolation', 'right_extrapolation'}),
-			('Linear Regression Log', lambda : LinearRegressionWithLogActivation(), {'interpolation', 'dual_extrapolation', 'left_extrapolation', 'right_extrapolation'}),
-			('Linear Regression Sigmoid', lambda : LinearRegressionWithSigmoidActivation(), {'interpolation', 'dual_extrapolation', 'left_extrapolation', 'right_extrapolation'})
+			('Linear Regression (Exp)', lambda : LinearRegressionWithExpActivation(), {'interpolation', 'dual_extrapolation', 'left_extrapolation', 'right_extrapolation'}),
+			('Linear Regression (Log)', lambda : LinearRegressionWithLogActivation(), {'interpolation', 'dual_extrapolation', 'left_extrapolation', 'right_extrapolation'}),
+			('Linear Regression (Sigmoid)', lambda : LinearRegressionWithSigmoidActivation(), {'interpolation', 'dual_extrapolation', 'left_extrapolation', 'right_extrapolation'})
 		])
 	
 	return models
