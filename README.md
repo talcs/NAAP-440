@@ -1,6 +1,6 @@
-# NAAP-440 Dataset
+# NAAP-440 and NAAP-440e Datasets
 
-This repository is the implementation of the paper [NAAP-440 Dataset and Baseline for Neural Architecture Accuracy Prediction](https://arxiv.org/abs/2209.06626), dealing with proposing solutions for accelerating Neural Architecture Search (NAS).
+This repository is the implementation of the papers [NAAP-440 Dataset and Baseline for Neural Architecture Accuracy Prediction](https://arxiv.org/abs/2209.06626), dealing with proposing solutions for accelerating Neural Architecture Search (NAS), and the paper [Accuracy Prediction for NAS Acceleration using Feature Selection and Extrapolation](https://arxiv.org/abs/2211.12419). 
 
 The NAAP-440 dataset is available on [Kaggle](https://www.kaggle.com/datasets/talcs1/naap-440) and is also provided as a part of this repository, in the file [naap440.csv](naap440.csv).
 
