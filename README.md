@@ -26,6 +26,8 @@ The NAAP-440 dataset is available on [Kaggle](https://www.kaggle.com/datasets/ta
 } 
 ```
 
+**Guidelines for reproducing the results of the paper [Accuracy Prediction for NAS Acceleration using Feature Selection and Extrapolation](https://arxiv.org/abs/2211.12419) will be posted soon. **
+
 ## Dataset Structure
 
 The NAAP-440 dataset contains 440 rows with the following fields:
